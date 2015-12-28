@@ -16,7 +16,7 @@ def main():
             book_url = row['URL']
             pdf_url = re.sub(r'book', r'content/pdf', row['URL']) + ".pdf"
 
-            print "Getting \"%s\" from %s" % (full_title, pdf_url)
+            print "Getting \"%s\" from %s" % (filename, pdf_url)
             response = urllib.urlretrieve(pdf_url, filename)
 
 if __name__ == "__main__":
