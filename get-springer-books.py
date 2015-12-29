@@ -8,6 +8,8 @@ import csv
 import operator
 import os
 import re
+import requests
+import requests_cache
 import sys
 import urllib
 import urllib2
@@ -70,12 +72,8 @@ class HeadRequest(urllib2.Request):
         return "HEAD"
 
 def url_exists(url):
-    try:
-        urllib2.urlopen(HeadRequest(url))
-        return True
-    except:
-        pass
-    return False
+    response = requests.request('HEAD', url, allow_redirects=True)
+    return response.status_code == 200
 
 def list_files(raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
@@ -86,9 +84,8 @@ def list_files(raw_title, year, raw_authors, url):
     if url_exists(pdf_url):
         print u"[%s](%s)\n" % (ftu, pdf_url)
     else:
-        f = urllib2.urlopen(url)
-        s = f.read()
-        soup = bs4.BeautifulSoup(s, 'lxml')
+        response = requests.get(url, allow_redirects=True)
+        soup = bs4.BeautifulSoup(response.text, 'lxml')
         toc_items = soup.find_all('li', class_="toc-item")
         link_strs = []
         for item in toc_items:
@@ -115,6 +112,8 @@ def download(raw_title, year, raw_authors, url):
 def main():
     UTF8Writer = codecs.getwriter('utf8')
     sys.stdout = UTF8Writer(sys.stdout)
+
+    requests_cache.install_cache('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'))
 
     parser = argparse.ArgumentParser(description='Get Springer books.')
     parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')

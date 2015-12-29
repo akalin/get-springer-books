@@ -1,7 +1,7 @@
-Prerequisites: lxml, BeautifulSoup
+Prerequisites: requests, requests-cache, lxml, BeautifulSoup
 
 ```
-pip install beautifulsoup4 lxml
+pip install beautifulsoup4 lxml requests requests-cache
 ```
 
 - Go to a search result page, like
