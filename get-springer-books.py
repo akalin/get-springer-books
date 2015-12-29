@@ -8,6 +8,7 @@ import os
 import re
 import sys
 import urllib
+import urllib2
 
 clean_titles = {
     'http://link.springer.com/book/10.1007/978-1-4612-5142-2': 'SL_2(R)',
@@ -62,12 +63,25 @@ def build_pdf_url(url):
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
     return pdf_url
 
+class HeadRequest(urllib2.Request):
+    def get_method(self):
+        return "HEAD"
+
+def url_exists(url):
+    try:
+        urllib2.urlopen(HeadRequest(url))
+        return True
+    except:
+        pass
+    return False
+
 def list_files(raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
 
     pdf_url = build_pdf_url(url)
 
-    print "[%s](%s)\n" % (full_title, pdf_url)
+    if url_exists(pdf_url):
+        print "[%s](%s)\n" % (full_title, pdf_url)
 
 def download(raw_title, year, raw_authors, url):
     filename = build_filename(raw_title, year, raw_authors, url)
