@@ -1,3 +1,9 @@
+Prerequisites: lxml, BeautifulSoup
+
+```
+pip install beautifulsoup4 lxml
+```
+
 - Go to a search result page, like
 http://link.springer.com/search?facet-series=%22666%22&facet-content-type=%22Book%22&showAll=false
 .

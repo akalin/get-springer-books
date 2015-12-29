@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import bs4
+import codecs
 import collections
 import csv
 import operator
@@ -77,11 +79,30 @@ def url_exists(url):
 
 def list_files(raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
+    ftu = full_title.decode('utf8', 'strict')
 
     pdf_url = build_pdf_url(url)
 
     if url_exists(pdf_url):
-        print "[%s](%s)\n" % (full_title, pdf_url)
+        print u"[%s](%s)\n" % (ftu, pdf_url)
+    else:
+        f = urllib2.urlopen(url)
+        s = f.read()
+        soup = bs4.BeautifulSoup(s, 'lxml')
+        toc_items = soup.find_all('li', class_="toc-item")
+        link_strs = []
+        for item in toc_items:
+            links = item.find_all('a')
+            for link in links:
+                url = link.get('href')
+                if url.endswith('.pdf'):
+                    title = link.get('title')
+                    clean_title = re.sub(u'\s+', u' ', title)
+                    abs_url = u"http://link.springer.com%s" % url
+                    link_strs.append(u"[%s](%s)" % (clean_title, abs_url))
+
+        all_link_str = u', '.join(link_strs)
+        print (u"%s (%s)\n" % (ftu, all_link_str))
 
 def download(raw_title, year, raw_authors, url):
     filename = build_filename(raw_title, year, raw_authors, url)
@@ -92,6 +113,9 @@ def download(raw_title, year, raw_authors, url):
     urllib.urlretrieve(pdf_url, filename)
     
 def main():
+    UTF8Writer = codecs.getwriter('utf8')
+    sys.stdout = UTF8Writer(sys.stdout)
+
     parser = argparse.ArgumentParser(description='Get Springer books.')
     parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
