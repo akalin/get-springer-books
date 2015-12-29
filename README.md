@@ -11,6 +11,15 @@ http://link.springer.com/search?facet-series=%22666%22&facet-content-type=%22Boo
 python2.7 get-springer-books.py /path/to/SearchResults.csv
 ```
 
+Note that the Springer website limits CSV results to 1000. You can
+filter by year and download multiple batches and run
+
+```
+python2.7 get-springer-books.py /path/to/SearchResults1.csv /path/to/SearchResults2.csv ...
+```
+
+(Duplicate entries will be removed.)
+
 If you already have a directory of PDFs with the ISBNs as filenames,
 like 978-1-4684-0047-2.pdf , you can also run
 

@@ -67,26 +67,34 @@ def download(raw_title, year, raw_authors, url):
     
 def main():
     parser = argparse.ArgumentParser(description='Get Springer books.')
-    parser.add_argument('csvfile', metavar='/path/to/search-results.csv', help='the csv file with search results')
+    parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     args = parser.parse_args()
 
     books = []
-    with open(args.csvfile, 'rb') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            raw_title = row['Item Title']
-            year = row['Publication Year']
-            raw_authors = row['Authors']
-            url = row['URL']
-            book = {
-                'raw_title': raw_title,
-                'year': year,
-                'raw_authors': raw_authors,
-                'url': url,
-            }
-            books.append(book)
+    urls = set()
+    for csvpath in args.csvpaths:
+        with open(csvpath, 'rb') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                raw_title = row['Item Title']
+                year = row['Publication Year']
+                raw_authors = row['Authors']
+                url = row['URL']
+
+                # Uniquify by URL.
+                if url in urls:
+                    continue
+                urls.add(url)
+
+                book = {
+                    'raw_title': raw_title,
+                    'year': year,
+                    'raw_authors': raw_authors,
+                    'url': url,
+                }
+                books.append(book)
 
     def sort_key(book):
         title = cleanup_title(book['raw_title'])
