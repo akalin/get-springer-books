@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import argparse
 import collections
 import csv
@@ -7,11 +9,15 @@ import re
 import sys
 import urllib
 
-def cleanup_title(raw_title):
-    # Special case for Serge Lang's book:
-    # http://link.springer.com/book/10.1007/978-1-4612-5142-2 .
-    if raw_title == "SL\n          2(R)":
-        return "SL_2(R)"
+clean_titles = {
+    'http://link.springer.com/book/10.1007/978-1-4612-5142-2': 'SL_2(R)',
+    'http://link.springer.com/book/10.1007/BFb0058395': 'Les Foncteurs Dérivés de lim<- et leurs Applications en Théorie des Modules',
+    'http://link.springer.com/book/10.1007/BFb0096358': 'New Classes of L^P−spaces',
+}
+
+def cleanup_title(raw_title, url):
+    if url in clean_titles:
+        return clean_titles[url]
     return raw_title
 
 def cleanup_authors(raw_authors):
@@ -19,20 +25,20 @@ def cleanup_authors(raw_authors):
     # up. This won't work for names that have mixed casing, though.
     return re.sub(r'([a-z])([A-Z])', r'\1, \2', raw_authors)
 
-def build_full_title(raw_title, year, raw_authors):
-    title = cleanup_title(raw_title)
+def build_full_title(raw_title, year, raw_authors, url):
+    title = cleanup_title(raw_title, url)
     authors = cleanup_authors(raw_authors)
     full_title = "%s - %s (%s)" % (title, authors, year)
     return full_title
 
-def build_filename(raw_title, year, raw_authors):
-    full_title = build_full_title(raw_title, year, raw_authors)
+def build_filename(raw_title, year, raw_authors, url):
+    full_title = build_full_title(raw_title, year, raw_authors, url)
     filename = "%s.pdf" % (full_title)
     return filename
 
 def rename(raw_title, year, raw_authors, url):
     old_filename = "%s - %s (%s).pdf" % (raw_title, raw_authors, year)
-    filename = build_filename(raw_title, year, raw_authors)
+    filename = build_filename(raw_title, year, raw_authors, url)
 
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
 
@@ -51,14 +57,14 @@ def build_pdf_url(url):
     return pdf_url
 
 def list_files(raw_title, year, raw_authors, url):
-    full_title = build_full_title(raw_title, year, raw_authors)
+    full_title = build_full_title(raw_title, year, raw_authors, url)
 
     pdf_url = build_pdf_url(url)
 
     print "[%s](%s)\n" % (full_title, pdf_url)
 
 def download(raw_title, year, raw_authors, url):
-    filename = build_filename(raw_title, year, raw_authors)
+    filename = build_filename(raw_title, year, raw_authors, url)
 
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
 
@@ -97,7 +103,7 @@ def main():
                 books.append(book)
 
     def sort_key(book):
-        title = cleanup_title(book['raw_title'])
+        title = cleanup_title(book['raw_title'], book['url'])
         year = book['year']
         return (title, year)
 
