@@ -15,7 +15,13 @@ If you already have a directory of PDFs with the ISBNs as filenames,
 like 978-1-4684-0047-2.pdf , you can also run
 
 ```
-python2.7 rename-springer-books.py /path/to/SearchResults.csv
+python2.7 get-springer-books.py --rename /path/to/SearchResults.csv
 ```
 
-To detect and rename those books.
+to detect and rename those books.
+
+Also, to build a markdown list, you can run
+
+```
+python2.7 get-springer-books.py --list /path/to/SearchResults.csv
+```
