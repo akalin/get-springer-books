@@ -17,10 +17,15 @@ def cleanup_authors(raw_authors):
     # up. This won't work for names that have mixed casing, though.
     return re.sub(r'([a-z])([A-Z])', r'\1, \2', raw_authors)
 
-def build_filename(raw_title, year, raw_authors):
+def build_full_title(raw_title, year, raw_authors):
     title = cleanup_title(raw_title)
     authors = cleanup_authors(raw_authors)
-    filename = "%s - %s (%s).pdf" % (title, authors, year)
+    full_title = "%s - %s (%s)" % (title, authors, year)
+    return full_title
+
+def build_filename(raw_title, year, raw_authors):
+    full_title = build_full_title(raw_title, year, raw_authors)
+    filename = "%s.pdf" % (full_title)
     return filename
 
 def rename(raw_title, year, raw_authors, url):
@@ -39,6 +44,17 @@ def rename(raw_title, year, raw_authors, url):
         print "Found %s, renaming to %s" % (old_filename, filename)
         os.rename(old_filename, filename)
 
+def build_pdf_url(url):
+    pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
+    return pdf_url
+
+def list_files(raw_title, year, raw_authors, url):
+    full_title = build_full_title(raw_title, year, raw_authors)
+
+    pdf_url = build_pdf_url(url)
+
+    print "[%s](%s)\n" % (full_title, pdf_url)
+
 def download(raw_title, year, raw_authors, url):
     filename = build_filename(raw_title, year, raw_authors)
 
@@ -46,11 +62,12 @@ def download(raw_title, year, raw_authors, url):
 
     print "Getting \"%s\" from %s" % (filename, pdf_url)
     urllib.urlretrieve(pdf_url, filename)
-
+    
 def main():
     parser = argparse.ArgumentParser(description='Get Springer books.')
     parser.add_argument('csvfile', metavar='/path/to/search-results.csv', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
+    parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     args = parser.parse_args()
 
     with open(args.csvfile, 'rb') as csvfile:
@@ -62,6 +79,8 @@ def main():
             url = row['URL']
             if args.rename:
                 rename(raw_title, year, raw_authors, url)
+            elif args.list:
+                list_files(raw_title, year, raw_authors, url)
             else:
                 download(raw_title, year, raw_authors, url)
 
