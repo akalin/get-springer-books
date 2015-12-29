@@ -21,9 +21,15 @@ def cleanup_title(raw_title, url):
     return raw_title
 
 def cleanup_authors(raw_authors):
-    # Author names are just concatenated together. Try and split them
-    # up. This won't work for names that have mixed casing, though.
-    return re.sub(r'([a-z])([A-Z])', r'\1, \2', raw_authors)
+    authors = raw_authors
+
+    # Handle this as a special case to avoid catching initials.
+    authors = re.sub(r"Jr\.([A-Z])", r'Jr., \1', authors)
+
+    # This won't work for names that have mixed casing, but that seems
+    # to be rare, except for initials.
+    authors = re.sub(r"([^- '’.A-Z])([A-Z])", r'\1, \2', authors)
+    return authors
 
 def build_full_title(raw_title, year, raw_authors, url):
     title = cleanup_title(raw_title, url)
