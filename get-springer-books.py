@@ -1,5 +1,7 @@
 import argparse
+import collections
 import csv
+import operator
 import os
 import re
 import sys
@@ -70,6 +72,7 @@ def main():
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     args = parser.parse_args()
 
+    books = []
     with open(args.csvfile, 'rb') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
@@ -77,12 +80,32 @@ def main():
             year = row['Publication Year']
             raw_authors = row['Authors']
             url = row['URL']
-            if args.rename:
-                rename(raw_title, year, raw_authors, url)
-            elif args.list:
-                list_files(raw_title, year, raw_authors, url)
-            else:
-                download(raw_title, year, raw_authors, url)
+            book = {
+                'raw_title': raw_title,
+                'year': year,
+                'raw_authors': raw_authors,
+                'url': url,
+            }
+            books.append(book)
+
+    def sort_key(book):
+        title = cleanup_title(book['raw_title'])
+        year = book['year']
+        return (title, year)
+
+    sorted_books = sorted(books, key=sort_key)
+
+    for book in sorted_books:
+        raw_title = book['raw_title']
+        year = book['year']
+        raw_authors = book['raw_authors']
+        url = book['url']
+        if args.rename:
+            rename(raw_title, year, raw_authors, url)
+        elif args.list:
+            list_files(raw_title, year, raw_authors, url)
+        else:
+            download(raw_title, year, raw_authors, url)
 
 if __name__ == "__main__":
     main()
