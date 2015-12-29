@@ -39,7 +39,10 @@ def cleanup_authors(raw_authors):
 def build_full_title(raw_title, year, raw_authors, url):
     title = cleanup_title(raw_title, url)
     authors = cleanup_authors(raw_authors)
-    full_title = "%s - %s (%s)" % (title, authors, year)
+    if len(authors) > 0:
+        full_title = "%s - %s (%s)" % (title, authors, year)
+    else:
+        full_title = "%s (%s)" % (title, year)
     return full_title
 
 def build_filename(raw_title, year, raw_authors, url):
