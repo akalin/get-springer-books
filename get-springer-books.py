@@ -17,11 +17,15 @@ def cleanup_authors(raw_authors):
     # up. This won't work for names that have mixed casing, though.
     return re.sub(r'([a-z])([A-Z])', r'\1, \2', raw_authors)
 
-def rename(raw_title, year, raw_authors, url):
+def build_filename(raw_title, year, raw_authors):
     title = cleanup_title(raw_title)
     authors = cleanup_authors(raw_authors)
-    old_filename = "%s - %s (%s).pdf" % (raw_title, raw_authors, year)
     filename = "%s - %s (%s).pdf" % (title, authors, year)
+    return filename
+
+def rename(raw_title, year, raw_authors, url):
+    old_filename = "%s - %s (%s).pdf" % (raw_title, raw_authors, year)
+    filename = build_filename(raw_title, year, raw_authors)
 
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
 
@@ -36,9 +40,7 @@ def rename(raw_title, year, raw_authors, url):
         os.rename(old_filename, filename)
 
 def download(raw_title, year, raw_authors, url):
-    title = cleanup_title(raw_title)
-    authors = cleanup_authors(raw_authors)
-    filename = "%s - %s (%s).pdf" % (title, authors, year)
+    filename = build_filename(raw_title, year, raw_authors)
 
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
 
