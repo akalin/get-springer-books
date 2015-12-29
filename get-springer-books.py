@@ -91,6 +91,7 @@ def list_files(raw_title, year, raw_authors, url):
         soup = bs4.BeautifulSoup(response.text, 'lxml')
         toc_items = soup.find_all('li', class_="toc-item")
         link_strs = []
+        i = 1
         for item in toc_items:
             links = item.find_all('a')
             for link in links:
@@ -99,7 +100,8 @@ def list_files(raw_title, year, raw_authors, url):
                     title = link.get('title')
                     clean_title = re.sub(u'\s+', u' ', title)
                     abs_url = u"http://link.springer.com%s" % url
-                    link_strs.append(u"[%s](%s)" % (clean_title, abs_url))
+                    link_strs.append(u'<a href="%s" title="%s">[%d]</a>' % (abs_url, clean_title, i))
+                    i += 1
 
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
