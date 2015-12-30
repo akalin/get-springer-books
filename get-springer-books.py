@@ -72,6 +72,8 @@ def build_pdf_url(url):
 
 def url_exists(url):
     response = requests.request('HEAD', url, allow_redirects=True)
+    if response.url.find('no-access=true') >= 0:
+        raise Exception("access denied to %s" % url)
     return response.status_code == 200
 
 def list_files(raw_title, year, raw_authors, url):
@@ -102,13 +104,41 @@ def list_files(raw_title, year, raw_authors, url):
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
+def download_file(url, path):
+    print "Getting \"%s\" from %s" % (path, url)
+    (dirname, filename) = os.path.split(path)
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+    urllib.urlretrieve(url, path)
+
 def download(raw_title, year, raw_authors, url):
+    full_title = build_full_title(raw_title, year, raw_authors, url)
+    ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, url)
+    fu = filename.decode('utf8', 'strict')
 
-    pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
+    pdf_url = build_pdf_url(url)
 
-    print "Getting \"%s\" from %s" % (filename, pdf_url)
-    urllib.urlretrieve(pdf_url, filename)
+    if url_exists(pdf_url):
+        download_file(pdf_url, fu)
+    else:
+        response = requests.get(url, allow_redirects=True)
+        soup = bs4.BeautifulSoup(response.text, 'lxml')
+        toc_items = soup.find_all('li', class_="toc-item")
+        link_strs = []
+        i = 1
+        for item in toc_items:
+            links = item.find_all('a')
+            for link in links:
+                url = link.get('href')
+                if url.endswith('.pdf'):
+                    title = link.get('title')
+                    clean_title = re.sub(u'\s+', u' ', title)
+                    abs_url = u"http://link.springer.com%s" % url
+                    filename = "%d - %s.pdf" % (i, clean_title)
+                    path = os.path.join(ftu, filename)
+                    download_file(abs_url, path)
+                    i += 1
     
 def main():
     UTF8Writer = codecs.getwriter('utf8')
