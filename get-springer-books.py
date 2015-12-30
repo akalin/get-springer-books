@@ -23,8 +23,8 @@ clean_titles = {
 
 def cleanup_title(raw_title, doi):
     if doi in clean_titles:
-        return clean_titles[doi]
-    return raw_title
+        return clean_titles[doi].decode('utf8', 'strict')
+    return raw_title.decode('utf8', 'strict')
 
 def cleanup_authors(raw_authors):
     authors = raw_authors
@@ -35,15 +35,16 @@ def cleanup_authors(raw_authors):
     # This won't work for names that have mixed casing, but that seems
     # to be rare, except for initials.
     authors = re.sub(r"([^- '’.A-Z])([A-Z])", r'\1, \2', authors)
-    return authors
+    return authors.decode('utf8', 'strict')
 
 def build_full_title(raw_title, year, raw_authors, doi):
     title = cleanup_title(raw_title, doi)
     authors = cleanup_authors(raw_authors)
+    doi_suffix = doi.split('/')[1]
     if len(authors) > 0:
-        full_title = "%s - %s (%s)" % (title, authors, year)
+        full_title = "%s - %s (%s) (%s)" % (title, authors, year, doi_suffix)
     else:
-        full_title = "%s (%s)" % (title, year)
+        full_title = "%s (%s) (%s)" % (title, year, doi_suffix)
     return full_title
 
 def build_filename(raw_title, year, raw_authors, doi):
@@ -55,20 +56,39 @@ def build_pdf_url(doi):
     pdf_url = "http://link.springer.com/content/pdf/%s.pdf" % (doi)
     return pdf_url
 
+def build_old_filenames(raw_title, year, raw_authors, doi):
+    # v1, just glom the raw title, year, and raw authors together.
+    old_filenames = []
+    old_filenames.append(("%s - %s (%s).pdf" % (raw_title, raw_authors, year)).decode('utf8', 'strict'))
+
+    # v2, clean up title and authors before glomming together
+    # (ignoring the case where authors is empty).
+    #
+    # TODO: Handle old author-splitting method.
+    title = cleanup_title(raw_title, doi)
+    authors = cleanup_authors(raw_authors)
+    old_filenames.append("%s - %s (%s).pdf" % (title, authors, year))
+
+    # v3, omit dash when authors is empty.
+    if len(authors) == 0:
+        old_filenames.append("%s (%s).pdf" % (title, year))
+
+    return old_filenames
+
 def rename(raw_title, year, raw_authors, doi, url):
-    old_filename = "%s - %s (%s).pdf" % (raw_title, raw_authors, year)
+    candidate_filenames = build_old_filenames(raw_title, year, raw_authors, doi)
     filename = build_filename(raw_title, year, raw_authors, doi)
 
     # The DOI in the URL is usually escaped.
     t = url.split('/')
     pdf_filename = t[-1] + '.pdf'
+    candidate_filenames.insert(0, pdf_filename)
 
-    if os.path.isfile(pdf_filename):
-        print "Found %s, renaming to %s" % (pdf_filename, filename)
-        os.rename(pdf_filename, filename)
-    elif old_filename != filename and os.path.isfile(old_filename):
-        print "Found %s, renaming to %s" % (old_filename, filename)
-        os.rename(old_filename, filename)
+    for candidate in candidate_filenames:
+        if os.path.isfile(candidate):
+            print "Found %s, renaming to %s" % (candidate, filename)
+            os.rename(candidate, filename)
+            break
 
 def head_url(crawl_session, url):
     request = crawl_session.prepare_request(requests.Request('HEAD', url))
@@ -104,12 +124,11 @@ def get_sections(crawl_session, url):
 
 def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
     full_title = build_full_title(raw_title, year, raw_authors, doi)
-    ftu = full_title.decode('utf8', 'strict')
 
     pdf_url = build_pdf_url(doi)
 
     if url_exists(crawl_session, pdf_url):
-        print u"[%s](%s)\n" % (ftu, pdf_url)
+        print u"[%s](%s)\n" % (full_title, pdf_url)
     else:
         sections = get_sections(crawl_session, url)
         i = 1
@@ -119,7 +138,7 @@ def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
             i += 1
 
         all_link_str = u', '.join(link_strs)
-        print (u"%s (%s)\n" % (ftu, all_link_str))
+        print (u"%s (%s)\n" % (full_title, all_link_str))
 
 def compute_file_md5(path):
     return hashlib.md5(open(path, 'rb').read()).hexdigest()
@@ -162,21 +181,19 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
 
 def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url):
     full_title = build_full_title(raw_title, year, raw_authors, doi)
-    ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, doi)
-    fu = filename.decode('utf8', 'strict')
 
     pdf_url = build_pdf_url(doi)
 
     if url_exists(crawl_session, pdf_url):
-        download_file(crawl_session, download_session, dry, checkmd5, pdf_url, fu)
+        download_file(crawl_session, download_session, dry, checkmd5, pdf_url, filename)
     else:
         sections = get_sections(crawl_session, url)
         i = 1
         link_strs = []
         for section in sections:
             filename = "%d - %s.pdf" % (i, section[0])
-            path = os.path.join(ftu, filename)
+            path = os.path.join(full_title, filename)
             download_file(crawl_session, download_session, dry, checkmd5, section[1], path)
             i += 1
     
