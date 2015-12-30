@@ -113,14 +113,15 @@ def list_files(session, raw_title, year, raw_authors, url):
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
-def download_file(url, path):
+def download_file(dry, url, path):
     print "Getting \"%s\" from %s" % (path, url)
-    (dirname, filename) = os.path.split(path)
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-    urllib.urlretrieve(url, path)
+    if not dry:
+        (dirname, filename) = os.path.split(path)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        urllib.urlretrieve(url, path)
 
-def download(session, raw_title, year, raw_authors, url):
+def download(session, dry, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, url)
@@ -129,7 +130,7 @@ def download(session, raw_title, year, raw_authors, url):
     pdf_url = build_pdf_url(url)
 
     if url_exists(session, pdf_url):
-        download_file(pdf_url, fu)
+        download_file(dry, pdf_url, fu)
     else:
         sections = get_sections(session, url)
         i = 1
@@ -137,7 +138,7 @@ def download(session, raw_title, year, raw_authors, url):
         for section in sections:
             filename = "%d - %s.pdf" % (i, section[0])
             path = os.path.join(ftu, filename)
-            download_file(section[1], path)
+            download_file(dry, section[1], path)
             i += 1
     
 def main():
@@ -148,6 +149,7 @@ def main():
     parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
+    parser.add_argument('--dry', help="don't actually sort any PDFs", action='store_true')
     args = parser.parse_args()
 
     session = requests_cache.core.CachedSession('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
@@ -193,7 +195,7 @@ def main():
         elif args.list:
             list_files(session, raw_title, year, raw_authors, url)
         else:
-            download(session, raw_title, year, raw_authors, url)
+            download(session, args.dry, raw_title, year, raw_authors, url)
 
 if __name__ == "__main__":
     main()
