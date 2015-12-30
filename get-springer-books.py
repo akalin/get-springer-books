@@ -113,13 +113,16 @@ def list_files(session, raw_title, year, raw_authors, url):
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
-def download_file(dry, url, path):
+def download_file(session, dry, url, path):
     print "Getting \"%s\" from %s" % (path, url)
     if not dry:
         (dirname, filename) = os.path.split(path)
-        if not os.path.exists(dirname):
+        if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
-        urllib.urlretrieve(url, path)
+        r = session.get(url)
+        with open(path, 'wb') as fd:
+            for chunk in r.iter_content(512 * 1024):
+                fd.write(chunk)
 
 def download(session, dry, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
@@ -130,7 +133,7 @@ def download(session, dry, raw_title, year, raw_authors, url):
     pdf_url = build_pdf_url(url)
 
     if url_exists(session, pdf_url):
-        download_file(dry, pdf_url, fu)
+        download_file(session, dry, pdf_url, fu)
     else:
         sections = get_sections(session, url)
         i = 1
@@ -138,7 +141,7 @@ def download(session, dry, raw_title, year, raw_authors, url):
         for section in sections:
             filename = "%d - %s.pdf" % (i, section[0])
             path = os.path.join(ftu, filename)
-            download_file(dry, section[1], path)
+            download_file(session, dry, section[1], path)
             i += 1
     
 def main():
