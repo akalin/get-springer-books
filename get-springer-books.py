@@ -70,14 +70,14 @@ def build_pdf_url(url):
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
     return pdf_url
 
-def url_exists(url):
-    response = requests.request('HEAD', url, allow_redirects=True)
+def url_exists(session, url):
+    response = session.request('HEAD', url, allow_redirects=True)
     if response.url.find('no-access=true') >= 0:
         raise Exception("access denied to %s" % url)
     return response.status_code == 200
 
-def get_sections(url):
-    response = requests.get(url, allow_redirects=True)
+def get_sections(session, url):
+    response = session.get(url, allow_redirects=True)
     soup = bs4.BeautifulSoup(response.text, 'lxml')
     toc_items = soup.find_all('li', class_="toc-item")
     sections = []
@@ -94,16 +94,16 @@ def get_sections(url):
                 i += 1
     return sections
 
-def list_files(raw_title, year, raw_authors, url):
+def list_files(session, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
 
     pdf_url = build_pdf_url(url)
 
-    if url_exists(pdf_url):
+    if url_exists(session, pdf_url):
         print u"[%s](%s)\n" % (ftu, pdf_url)
     else:
-        sections = get_sections(url)
+        sections = get_sections(session, url)
         i = 1
         link_strs = []
         for section in sections:
@@ -120,7 +120,7 @@ def download_file(url, path):
         os.makedirs(dirname)
     urllib.urlretrieve(url, path)
 
-def download(raw_title, year, raw_authors, url):
+def download(session, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, url)
@@ -128,10 +128,10 @@ def download(raw_title, year, raw_authors, url):
 
     pdf_url = build_pdf_url(url)
 
-    if url_exists(pdf_url):
+    if url_exists(session, pdf_url):
         download_file(pdf_url, fu)
     else:
-        sections = get_sections(url)
+        sections = get_sections(session, url)
         i = 1
         link_strs = []
         for section in sections:
@@ -144,14 +144,14 @@ def main():
     UTF8Writer = codecs.getwriter('utf8')
     sys.stdout = UTF8Writer(sys.stdout)
 
-    requests_cache.install_cache('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'))
-
     parser = argparse.ArgumentParser(description='Get Springer books.')
     parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     args = parser.parse_args()
 
+    session = requests_cache.core.CachedSession('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
+    
     books = []
     urls = set()
     for csvpath in args.csvpaths:
@@ -191,9 +191,9 @@ def main():
         if args.rename:
             rename(raw_title, year, raw_authors, url)
         elif args.list:
-            list_files(raw_title, year, raw_authors, url)
+            list_files(session, raw_title, year, raw_authors, url)
         else:
-            download(raw_title, year, raw_authors, url)
+            download(session, raw_title, year, raw_authors, url)
 
 if __name__ == "__main__":
     main()
