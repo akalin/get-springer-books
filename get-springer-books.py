@@ -70,10 +70,6 @@ def build_pdf_url(url):
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
     return pdf_url
 
-class HeadRequest(urllib2.Request):
-    def get_method(self):
-        return "HEAD"
-
 def url_exists(url):
     response = requests.request('HEAD', url, allow_redirects=True)
     return response.status_code == 200
