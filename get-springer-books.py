@@ -116,9 +116,10 @@ def get_sections(crawl_session, url):
             url = link.get('href')
             if url.endswith('.pdf'):
                 title = link.get('title')
+                doi = link.get('doi')
                 clean_title = re.sub(u'\s+', u' ', title)
                 abs_url = u"http://link.springer.com%s" % url
-                sections.append((clean_title, abs_url))
+                sections.append((clean_title, abs_url, doi))
                 i += 1
     return sections
 
@@ -133,8 +134,8 @@ def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
         sections = get_sections(crawl_session, url)
         i = 1
         link_strs = []
-        for section in sections:
-            link_strs.append(u'<a href="%s" title="%s">[%d]</a>' % (section[1], section[0], i))
+        for (title, url, doi) in sections:
+            link_strs.append(u'<a href="%s" title="%s">[%d]</a>' % (url, title, i))
             i += 1
 
         all_link_str = u', '.join(link_strs)
@@ -191,10 +192,14 @@ def download(crawl_session, download_session, dry, checkmd5, raw_title, year, ra
         sections = get_sections(crawl_session, url)
         i = 1
         link_strs = []
-        for section in sections:
-            filename = "%d - %s.pdf" % (i, section[0])
+        for (title, url, doi) in sections:
+            if doi:
+                doi_suffix = doi.split('/')[1]
+                filename = "%d - %s (%s).pdf" % (i, title, doi_suffix)
+            else:
+                filename = "%d - %s.pdf" % (i, title)
             path = os.path.join(full_title, filename)
-            download_file(crawl_session, download_session, dry, checkmd5, section[1], path)
+            download_file(crawl_session, download_session, dry, checkmd5, url, path)
             i += 1
     
 def main():
