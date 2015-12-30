@@ -190,11 +190,13 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
             # Failed all attempts.
             raise Exception("Downloaded file %s didn't match headers after %d attempts" % (path, maxAttempts))
 
-def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url):
+def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url, index, count):
     full_title = build_full_title(raw_title, year, raw_authors, doi)
     filename = build_filename(raw_title, year, raw_authors, doi)
 
     pdf_url = build_pdf_url(doi)
+
+    print "(%d/%d)" % (index+1, count),
 
     if url_exists(crawl_session, pdf_url):
         download_file(crawl_session, download_session, dry, checkmd5, pdf_url, filename)
@@ -269,6 +271,7 @@ def main():
 
     sorted_books = sorted(books, key=sort_key)
 
+    i = 0
     for book in sorted_books:
         raw_title = book['raw_title']
         year = book['year']
@@ -280,7 +283,8 @@ def main():
         elif args.list:
             list_files(crawl_session, raw_title, year, raw_authors, doi, url)
         else:
-            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, doi, url)
+            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, doi, url, i, len(sorted_books))
+        i += 1
 
 if __name__ == "__main__":
     main()
