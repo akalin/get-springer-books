@@ -5,6 +5,7 @@ import bs4
 import codecs
 import collections
 import csv
+import hashlib
 import operator
 import os
 import re
@@ -121,15 +122,31 @@ def list_files(crawl_session, raw_title, year, raw_authors, url):
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
-def download_file(crawl_session, download_session, dry, url, path):
+def compute_file_md5(path):
+    return hashlib.md5(open(path, 'rb').read()).hexdigest()
+
+def file_matches_headers(path, response, checkmd5):
+    expected_size = int(response.headers['Content-Length'])
+    size = os.path.getsize(path)
+    if expected_size != size:
+        return False
+    if checkmd5:
+        etag = response.headers['ETag']
+        expected_md5 = etag.strip(' \t\n\r"').split(':')[0]
+        md5 = compute_file_md5(path)
+        if expected_md5 != md5:
+            return False
+    return True
+
+def download_file(crawl_session, download_session, dry, checkmd5, url, path):
     # Always get response for now, to prime the cache.
     response = head_url(crawl_session, url)
     if os.path.exists(path):
-        expected_size = int(response.headers['Content-Length'])
-        # TODO: Compare ETag to md5.
-        size = os.path.getsize(path)
-        if expected_size == size:
-            print "Skipping \"%s\", already exists (sizes match)" % (path)
+        if file_matches_headers(path, response, checkmd5):
+            if checkmd5:
+                print "Skipping \"%s\", already exists (sizes and md5s match)" % (path)
+            else:
+                print "Skipping \"%s\", already exists (sizes match)" % (path)
             return
 
     print "Getting \"%s\" from %s" % (path, url)
@@ -141,8 +158,10 @@ def download_file(crawl_session, download_session, dry, url, path):
         with open(path, 'wb') as fd:
             for chunk in r.iter_content(512 * 1024):
                 fd.write(chunk)
+        if not file_matches_headers(path, response, checkmd5):
+            raise Exception("Download file %s doesn't match headers" % (path))
 
-def download(crawl_session, download_session, dry, raw_title, year, raw_authors, url):
+def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, url)
@@ -151,7 +170,7 @@ def download(crawl_session, download_session, dry, raw_title, year, raw_authors,
     pdf_url = build_pdf_url(url)
 
     if url_exists(crawl_session, pdf_url):
-        download_file(crawl_session, download_session, dry, pdf_url, fu)
+        download_file(crawl_session, download_session, dry, checkmd5, pdf_url, fu)
     else:
         sections = get_sections(crawl_session, url)
         i = 1
@@ -159,7 +178,7 @@ def download(crawl_session, download_session, dry, raw_title, year, raw_authors,
         for section in sections:
             filename = "%d - %s.pdf" % (i, section[0])
             path = os.path.join(ftu, filename)
-            download_file(crawl_session, download_session, dry, section[1], path)
+            download_file(crawl_session, download_session, dry, checkmd5, section[1], path)
             i += 1
     
 def main():
@@ -171,6 +190,7 @@ def main():
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     parser.add_argument('--dry', help="don't actually download any PDFs", action='store_true')
+    parser.add_argument('--checkmd5', help="check the MD5s of existing PDFs", action='store_true')
     parser.add_argument('--socks5', help='SOCKS5 proxy to use (host:port)')
     args = parser.parse_args()
 
@@ -225,7 +245,7 @@ def main():
         elif args.list:
             list_files(crawl_session, raw_title, year, raw_authors, url)
         else:
-            download(crawl_session, download_session, args.dry, raw_title, year, raw_authors, url)
+            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, url)
 
 if __name__ == "__main__":
     main()
