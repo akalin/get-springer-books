@@ -70,22 +70,22 @@ def build_pdf_url(url):
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
     return pdf_url
 
-def head_url(session, url):
-    request = session.prepare_request(requests.Request('HEAD', url))
-    response = session.send(request, allow_redirects=True)
+def head_url(crawl_session, url):
+    request = crawl_session.prepare_request(requests.Request('HEAD', url))
+    response = crawl_session.send(request, allow_redirects=True)
     if response.url.find('no-access=true') >= 0:
         # Don't cache this response.
-        k = session.cache.create_key(request)
-        session.cache.delete(k)
+        k = crawl_session.cache.create_key(request)
+        crawl_session.cache.delete(k)
         raise Exception("access denied to %s" % url)
     return response
 
-def url_exists(session, url):
-    response = head_url(session, url)
+def url_exists(crawl_session, url):
+    response = head_url(crawl_session, url)
     return response.status_code == 200
 
-def get_sections(session, url):
-    response = session.get(url, allow_redirects=True)
+def get_sections(crawl_session, url):
+    response = crawl_session.get(url, allow_redirects=True)
     soup = bs4.BeautifulSoup(response.text, 'lxml')
     toc_items = soup.find_all('li', class_="toc-item")
     sections = []
@@ -102,16 +102,16 @@ def get_sections(session, url):
                 i += 1
     return sections
 
-def list_files(session, raw_title, year, raw_authors, url):
+def list_files(crawl_session, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
 
     pdf_url = build_pdf_url(url)
 
-    if url_exists(session, pdf_url):
+    if url_exists(crawl_session, pdf_url):
         print u"[%s](%s)\n" % (ftu, pdf_url)
     else:
-        sections = get_sections(session, url)
+        sections = get_sections(crawl_session, url)
         i = 1
         link_strs = []
         for section in sections:
@@ -121,9 +121,9 @@ def list_files(session, raw_title, year, raw_authors, url):
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
-def download_file(session, dry, url, path):
+def download_file(crawl_session, download_session, dry, url, path):
     if os.path.exists(path):
-        response = head_url(session, url)
+        response = head_url(crawl_session, url)
         expected_size = int(response.headers['Content-Length'])
         # TODO: Compare ETag to md5.
         size = os.path.getsize(path)
@@ -136,12 +136,12 @@ def download_file(session, dry, url, path):
         (dirname, filename) = os.path.split(path)
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
-        r = session.get(url)
+        r = download_session.get(url)
         with open(path, 'wb') as fd:
             for chunk in r.iter_content(512 * 1024):
                 fd.write(chunk)
 
-def download(session, dry, raw_title, year, raw_authors, url):
+def download(crawl_session, download_session, dry, raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
     filename = build_filename(raw_title, year, raw_authors, url)
@@ -149,16 +149,16 @@ def download(session, dry, raw_title, year, raw_authors, url):
 
     pdf_url = build_pdf_url(url)
 
-    if url_exists(session, pdf_url):
-        download_file(session, dry, pdf_url, fu)
+    if url_exists(crawl_session, pdf_url):
+        download_file(crawl_session, download_session, dry, pdf_url, fu)
     else:
-        sections = get_sections(session, url)
+        sections = get_sections(crawl_session, url)
         i = 1
         link_strs = []
         for section in sections:
             filename = "%d - %s.pdf" % (i, section[0])
             path = os.path.join(ftu, filename)
-            download_file(session, dry, section[1], path)
+            download_file(crawl_session, download_session, dry, section[1], path)
             i += 1
     
 def main():
@@ -180,7 +180,8 @@ def main():
         socks.set_default_proxy(socks.SOCKS5, host, int(port))
         socket.socket = socks.socksocket
 
-    session = requests_cache.core.CachedSession('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
+    crawl_session = requests_cache.core.CachedSession('/tmp/get-springer-books-crawl-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
+    download_session = requests.session()
     
     books = []
     urls = set()
@@ -221,9 +222,9 @@ def main():
         if args.rename:
             rename(raw_title, year, raw_authors, url)
         elif args.list:
-            list_files(session, raw_title, year, raw_authors, url)
+            list_files(crawl_session, raw_title, year, raw_authors, url)
         else:
-            download(session, args.dry, raw_title, year, raw_authors, url)
+            download(crawl_session, download_session, args.dry, raw_title, year, raw_authors, url)
 
 if __name__ == "__main__":
     main()
