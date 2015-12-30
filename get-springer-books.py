@@ -71,8 +71,12 @@ def build_pdf_url(url):
     return pdf_url
 
 def url_exists(session, url):
-    response = session.request('HEAD', url, allow_redirects=True)
+    request = session.prepare_request(requests.Request('HEAD', url))
+    response = session.send(request, allow_redirects=True)
     if response.url.find('no-access=true') >= 0:
+        # Don't cache this response.
+        k = session.cache.create_key(request)
+        session.cache.delete(k)
         raise Exception("access denied to %s" % url)
     return response.status_code == 200
 
