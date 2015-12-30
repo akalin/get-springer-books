@@ -144,13 +144,13 @@ def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
 def compute_file_md5(path):
     return hashlib.md5(open(path, 'rb').read()).hexdigest()
 
-def file_matches_headers(path, response, checkmd5):
-    expected_size = int(response.headers['Content-Length'])
+def file_matches_headers(path, headers, checkmd5):
+    expected_size = int(headers['Content-Length'])
     size = os.path.getsize(path)
     if expected_size != size:
         return False
     if checkmd5:
-        etag = response.headers['ETag']
+        etag = headers['ETag']
         expected_md5 = etag.strip(' \t\n\r"').split(':')[0]
         md5 = compute_file_md5(path)
         if expected_md5 != md5:
@@ -161,24 +161,34 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
     # Always get response for now, to prime the cache.
     response = head_url(crawl_session, url)
     if os.path.exists(path):
-        if file_matches_headers(path, response, checkmd5):
+        if file_matches_headers(path, response.headers, checkmd5):
             if checkmd5:
                 print "Skipping \"%s\", already exists (sizes and md5s match)" % (path)
             else:
                 print "Skipping \"%s\", already exists (sizes match)" % (path)
             return
 
+    maxAttempts = 3
+
     print "Getting \"%s\" from %s" % (path, url)
     if not dry:
         (dirname, filename) = os.path.split(path)
         if dirname and not os.path.exists(dirname):
             os.makedirs(dirname)
-        r = download_session.get(url)
-        with open(path, 'wb') as fd:
-            for chunk in r.iter_content(512 * 1024):
-                fd.write(chunk)
-        if not file_matches_headers(path, response, checkmd5):
-            raise Exception("Download file %s doesn't match headers" % (path))
+
+        for i in xrange(0, maxAttempts):
+            r = download_session.get(url)
+            with open(path, 'wb') as fd:
+                for chunk in r.iter_content(512 * 1024):
+                    fd.write(chunk)
+
+            if file_matches_headers(path, response.headers, True):
+                break
+
+            print "Downloaded file %s didn't match headers; retrying (attempt %d)" % (path, i+1)
+        else:
+            # Failed all attempts.
+            raise Exception("Downloaded file %s didn't match headers after %d attempts" % (path, maxAttempts))
 
 def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url):
     full_title = build_full_title(raw_title, year, raw_authors, doi)
