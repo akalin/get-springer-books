@@ -122,8 +122,9 @@ def list_files(crawl_session, raw_title, year, raw_authors, url):
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
 def download_file(crawl_session, download_session, dry, url, path):
+    # Always get response for now, to prime the cache.
+    response = head_url(crawl_session, url)
     if os.path.exists(path):
-        response = head_url(crawl_session, url)
         expected_size = int(response.headers['Content-Length'])
         # TODO: Compare ETag to md5.
         size = os.path.getsize(path)
