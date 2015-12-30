@@ -70,7 +70,7 @@ def build_pdf_url(url):
     pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
     return pdf_url
 
-def url_exists(session, url):
+def head_url(session, url):
     request = session.prepare_request(requests.Request('HEAD', url))
     response = session.send(request, allow_redirects=True)
     if response.url.find('no-access=true') >= 0:
@@ -78,6 +78,10 @@ def url_exists(session, url):
         k = session.cache.create_key(request)
         session.cache.delete(k)
         raise Exception("access denied to %s" % url)
+    return response
+
+def url_exists(session, url):
+    response = head_url(session, url)
     return response.status_code == 200
 
 def get_sections(session, url):
@@ -118,6 +122,15 @@ def list_files(session, raw_title, year, raw_authors, url):
         print (u"%s (%s)\n" % (ftu, all_link_str))
 
 def download_file(session, dry, url, path):
+    if os.path.exists(path):
+        response = head_url(session, url)
+        expected_size = int(response.headers['Content-Length'])
+        # TODO: Compare ETag to md5.
+        size = os.path.getsize(path)
+        if expected_size == size:
+            print "Skipping \"%s\", already exists (sizes match)" % (path)
+            return
+
     print "Getting \"%s\" from %s" % (path, url)
     if not dry:
         (dirname, filename) = os.path.split(path)
