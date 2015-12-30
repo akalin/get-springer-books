@@ -170,7 +170,7 @@ def main():
     parser.add_argument('csvpaths', metavar='/path/to/search-results.csv', nargs='+', help='the csv file with search results')
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
-    parser.add_argument('--dry', help="don't actually sort any PDFs", action='store_true')
+    parser.add_argument('--dry', help="don't actually download any PDFs", action='store_true')
     parser.add_argument('--socks5', help='SOCKS5 proxy to use (host:port)')
     args = parser.parse_args()
 
