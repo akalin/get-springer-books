@@ -153,7 +153,15 @@ def main():
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     parser.add_argument('--dry', help="don't actually sort any PDFs", action='store_true')
+    parser.add_argument('--socks5', help='SOCKS5 proxy to use (host:port)')
     args = parser.parse_args()
+
+    if args.socks5:
+        import socket
+        import socks
+        (host, port) = args.socks5.split(':')
+        socks.set_default_proxy(socks.SOCKS5, host, int(port))
+        socket.socket = socks.socksocket
 
     session = requests_cache.core.CachedSession('/tmp/get-springer-books-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
     

@@ -4,6 +4,12 @@ Prerequisites: requests, requests-cache, lxml, BeautifulSoup
 pip install beautifulsoup4 lxml requests requests-cache
 ```
 
+If you want proxy support, you'll also need PySocks:
+
+```
+pip install PySocks
+```
+
 - Go to a search result page, like
 http://link.springer.com/search?facet-series=%22666%22&facet-content-type=%22Book%22&showAll=false
 .
