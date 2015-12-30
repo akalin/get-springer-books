@@ -222,7 +222,8 @@ def main():
         socks.set_default_proxy(socks.SOCKS5, host, int(port))
         socket.socket = socks.socksocket
 
-    crawl_session = requests_cache.core.CachedSession('/tmp/get-springer-books-crawl-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302))
+    # Caches redirects, and also 404s so we cache url_exists queries.
+    crawl_session = requests_cache.core.CachedSession('/tmp/get-springer-books-crawl-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302,404))
     download_session = requests.session()
     
     books = []
