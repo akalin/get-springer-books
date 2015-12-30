@@ -76,6 +76,24 @@ def url_exists(url):
         raise Exception("access denied to %s" % url)
     return response.status_code == 200
 
+def get_sections(url):
+    response = requests.get(url, allow_redirects=True)
+    soup = bs4.BeautifulSoup(response.text, 'lxml')
+    toc_items = soup.find_all('li', class_="toc-item")
+    sections = []
+    i = 1
+    for item in toc_items:
+        links = item.find_all('a')
+        for link in links:
+            url = link.get('href')
+            if url.endswith('.pdf'):
+                title = link.get('title')
+                clean_title = re.sub(u'\s+', u' ', title)
+                abs_url = u"http://link.springer.com%s" % url
+                sections.append((clean_title, abs_url))
+                i += 1
+    return sections
+
 def list_files(raw_title, year, raw_authors, url):
     full_title = build_full_title(raw_title, year, raw_authors, url)
     ftu = full_title.decode('utf8', 'strict')
@@ -85,21 +103,12 @@ def list_files(raw_title, year, raw_authors, url):
     if url_exists(pdf_url):
         print u"[%s](%s)\n" % (ftu, pdf_url)
     else:
-        response = requests.get(url, allow_redirects=True)
-        soup = bs4.BeautifulSoup(response.text, 'lxml')
-        toc_items = soup.find_all('li', class_="toc-item")
-        link_strs = []
+        sections = get_sections(url)
         i = 1
-        for item in toc_items:
-            links = item.find_all('a')
-            for link in links:
-                url = link.get('href')
-                if url.endswith('.pdf'):
-                    title = link.get('title')
-                    clean_title = re.sub(u'\s+', u' ', title)
-                    abs_url = u"http://link.springer.com%s" % url
-                    link_strs.append(u'<a href="%s" title="%s">[%d]</a>' % (abs_url, clean_title, i))
-                    i += 1
+        link_strs = []
+        for section in sections:
+            link_strs.append(u'<a href="%s" title="%s">[%d]</a>' % (section[1], section[0], i))
+            i += 1
 
         all_link_str = u', '.join(link_strs)
         print (u"%s (%s)\n" % (ftu, all_link_str))
@@ -122,23 +131,14 @@ def download(raw_title, year, raw_authors, url):
     if url_exists(pdf_url):
         download_file(pdf_url, fu)
     else:
-        response = requests.get(url, allow_redirects=True)
-        soup = bs4.BeautifulSoup(response.text, 'lxml')
-        toc_items = soup.find_all('li', class_="toc-item")
-        link_strs = []
+        sections = get_sections(url)
         i = 1
-        for item in toc_items:
-            links = item.find_all('a')
-            for link in links:
-                url = link.get('href')
-                if url.endswith('.pdf'):
-                    title = link.get('title')
-                    clean_title = re.sub(u'\s+', u' ', title)
-                    abs_url = u"http://link.springer.com%s" % url
-                    filename = "%d - %s.pdf" % (i, clean_title)
-                    path = os.path.join(ftu, filename)
-                    download_file(abs_url, path)
-                    i += 1
+        link_strs = []
+        for section in sections:
+            filename = "%d - %s.pdf" % (i, section[0])
+            path = os.path.join(ftu, filename)
+            download_file(section[1], path)
+            i += 1
     
 def main():
     UTF8Writer = codecs.getwriter('utf8')
