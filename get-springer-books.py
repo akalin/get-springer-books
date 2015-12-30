@@ -16,14 +16,14 @@ import urllib
 import urllib2
 
 clean_titles = {
-    'http://link.springer.com/book/10.1007/978-1-4612-5142-2': 'SL_2(R)',
-    'http://link.springer.com/book/10.1007/BFb0058395': 'Les Foncteurs Dérivés de lim<- et leurs Applications en Théorie des Modules',
-    'http://link.springer.com/book/10.1007/BFb0096358': 'New Classes of L^P−spaces',
+    '10.1007/978-1-4612-5142-2': 'SL_2(R)',
+    '10.1007/BFb0058395': 'Les Foncteurs Dérivés de lim<- et leurs Applications en Théorie des Modules',
+    '10.1007/BFb0096358': 'New Classes of L^P−spaces',
 }
 
-def cleanup_title(raw_title, url):
-    if url in clean_titles:
-        return clean_titles[url]
+def cleanup_title(raw_title, doi):
+    if doi in clean_titles:
+        return clean_titles[doi]
     return raw_title
 
 def cleanup_authors(raw_authors):
@@ -37,8 +37,8 @@ def cleanup_authors(raw_authors):
     authors = re.sub(r"([^- '’.A-Z])([A-Z])", r'\1, \2', authors)
     return authors
 
-def build_full_title(raw_title, year, raw_authors, url):
-    title = cleanup_title(raw_title, url)
+def build_full_title(raw_title, year, raw_authors, doi):
+    title = cleanup_title(raw_title, doi)
     authors = cleanup_authors(raw_authors)
     if len(authors) > 0:
         full_title = "%s - %s (%s)" % (title, authors, year)
@@ -46,19 +46,22 @@ def build_full_title(raw_title, year, raw_authors, url):
         full_title = "%s (%s)" % (title, year)
     return full_title
 
-def build_filename(raw_title, year, raw_authors, url):
-    full_title = build_full_title(raw_title, year, raw_authors, url)
+def build_filename(raw_title, year, raw_authors, doi):
+    full_title = build_full_title(raw_title, year, raw_authors, doi)
     filename = "%s.pdf" % (full_title)
     return filename
 
-def rename(raw_title, year, raw_authors, url):
+def build_pdf_url(doi):
+    pdf_url = "http://link.springer.com/content/pdf/%s.pdf" % (doi)
+    return pdf_url
+
+def rename(raw_title, year, raw_authors, doi, url):
     old_filename = "%s - %s (%s).pdf" % (raw_title, raw_authors, year)
-    filename = build_filename(raw_title, year, raw_authors, url)
+    filename = build_filename(raw_title, year, raw_authors, doi)
 
-    pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
-
-    t = pdf_url.split('/')
-    pdf_filename = t[-1]
+    # The DOI in the URL is usually escaped.
+    t = url.split('/')
+    pdf_filename = t[-1] + '.pdf'
 
     if os.path.isfile(pdf_filename):
         print "Found %s, renaming to %s" % (pdf_filename, filename)
@@ -66,10 +69,6 @@ def rename(raw_title, year, raw_authors, url):
     elif old_filename != filename and os.path.isfile(old_filename):
         print "Found %s, renaming to %s" % (old_filename, filename)
         os.rename(old_filename, filename)
-
-def build_pdf_url(url):
-    pdf_url = re.sub(r'book', r'content/pdf', url) + ".pdf"
-    return pdf_url
 
 def head_url(crawl_session, url):
     request = crawl_session.prepare_request(requests.Request('HEAD', url))
@@ -103,11 +102,11 @@ def get_sections(crawl_session, url):
                 i += 1
     return sections
 
-def list_files(crawl_session, raw_title, year, raw_authors, url):
-    full_title = build_full_title(raw_title, year, raw_authors, url)
+def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
+    full_title = build_full_title(raw_title, year, raw_authors, doi)
     ftu = full_title.decode('utf8', 'strict')
 
-    pdf_url = build_pdf_url(url)
+    pdf_url = build_pdf_url(doi)
 
     if url_exists(crawl_session, pdf_url):
         print u"[%s](%s)\n" % (ftu, pdf_url)
@@ -161,13 +160,13 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
         if not file_matches_headers(path, response, checkmd5):
             raise Exception("Download file %s doesn't match headers" % (path))
 
-def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, url):
-    full_title = build_full_title(raw_title, year, raw_authors, url)
+def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url):
+    full_title = build_full_title(raw_title, year, raw_authors, doi)
     ftu = full_title.decode('utf8', 'strict')
-    filename = build_filename(raw_title, year, raw_authors, url)
+    filename = build_filename(raw_title, year, raw_authors, doi)
     fu = filename.decode('utf8', 'strict')
 
-    pdf_url = build_pdf_url(url)
+    pdf_url = build_pdf_url(doi)
 
     if url_exists(crawl_session, pdf_url):
         download_file(crawl_session, download_session, dry, checkmd5, pdf_url, fu)
@@ -205,7 +204,7 @@ def main():
     download_session = requests.session()
     
     books = []
-    urls = set()
+    dois = set()
     for csvpath in args.csvpaths:
         with open(csvpath, 'rb') as csvfile:
             reader = csv.DictReader(csvfile)
@@ -213,23 +212,25 @@ def main():
                 raw_title = row['Item Title']
                 year = row['Publication Year']
                 raw_authors = row['Authors']
+                doi = row['Item DOI']
                 url = row['URL']
 
-                # Uniquify by URL.
-                if url in urls:
+                # Uniquify by DOI.
+                if doi in dois:
                     continue
-                urls.add(url)
+                dois.add(doi)
 
                 book = {
                     'raw_title': raw_title,
                     'year': year,
                     'raw_authors': raw_authors,
+                    'doi': doi,
                     'url': url,
                 }
                 books.append(book)
 
     def sort_key(book):
-        title = cleanup_title(book['raw_title'], book['url'])
+        title = cleanup_title(book['raw_title'], book['doi'])
         year = book['year']
         return (title, year)
 
@@ -239,13 +240,14 @@ def main():
         raw_title = book['raw_title']
         year = book['year']
         raw_authors = book['raw_authors']
+        doi = book['doi']
         url = book['url']
         if args.rename:
-            rename(raw_title, year, raw_authors, url)
+            rename(raw_title, year, raw_authors, doi, url)
         elif args.list:
-            list_files(crawl_session, raw_title, year, raw_authors, url)
+            list_files(crawl_session, raw_title, year, raw_authors, doi, url)
         else:
-            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, url)
+            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, doi, url)
 
 if __name__ == "__main__":
     main()
