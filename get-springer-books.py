@@ -104,6 +104,16 @@ def url_exists(crawl_session, url):
     response = head_url(crawl_session, url)
     return response.status_code == 200
 
+clean_section_titles = {
+    '10.1007/BFb0060880': u'Functional interpretation of classical (AC)o-, (ωAC)-analysis with (ER)-qf and functional interpretation in the narrower sense of Heyting-analysis plus (ER)-qf, (MP), ... in T⋃BR',
+}
+
+def cleanup_section_title(raw_title, doi):
+    if doi in clean_section_titles:
+        return clean_section_titles[doi]
+    clean_title = re.sub(u'\s+', u' ', raw_title)
+    return clean_title
+
 def get_sections(crawl_session, url):
     response = crawl_session.get(url, allow_redirects=True)
     soup = bs4.BeautifulSoup(response.text, 'lxml')
@@ -117,7 +127,7 @@ def get_sections(crawl_session, url):
             if url.endswith('.pdf'):
                 title = link.get('title')
                 doi = link.get('doi')
-                clean_title = re.sub(u'\s+', u' ', title)
+                clean_title = cleanup_section_title(title, doi)
                 abs_url = u"http://link.springer.com%s" % url
                 sections.append((clean_title, abs_url, doi))
                 i += 1
@@ -205,6 +215,8 @@ def download(crawl_session, download_session, dry, checkmd5, raw_title, year, ra
         i = 1
         link_strs = []
         for (title, url, doi) in sections:
+#            if len(title) > 100:
+#                title = title[:97] + '...'
             if doi:
                 doi_suffix = doi.split('/')[1]
                 filename = "%d - %s (%s).pdf" % (i, title, doi_suffix)
