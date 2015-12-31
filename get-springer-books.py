@@ -108,6 +108,7 @@ def url_exists(crawl_session, url):
 clean_section_titles = {
     '10.1007/BFb0060880': u'Functional interpretation of classical (AC)o-, (ωAC)-analysis with (ER)-qf and functional interpretation in the narrower sense of Heyting-analysis plus (ER)-qf, (MP), ... in T⋃BR',
     '10.1007/BFb0091368': u'Evaporation and condensation of a rarefied gas between its two parallel plane condensed phases with different temperatures and negative temperature-gradient phenomenon',
+    '10.1007/BFb0077580': u'Asymptotic expressions for the remainders associated to expansions of type $$\\sum\\limits_{n = 0}^\\infty { c_n \\frac{{z^n }}{{n!}}, } \\sum\\limits_{n = 0}^\\infty { c_n z^n and } \\sum\\limits_{n = 0} { c_n n!z^n }$$',
 }
 
 def cleanup_section_title(raw_title, doi):
