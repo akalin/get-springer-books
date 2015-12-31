@@ -156,29 +156,37 @@ def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
 def compute_file_md5(path):
     return hashlib.md5(open(path, 'rb').read()).hexdigest()
 
-def file_matches_headers(path, headers, checkmd5):
+def compare_file_with_headers(path, headers, checkmd5):
     expected_size = int(headers['Content-Length'])
-    size = os.path.getsize(path)
-    if expected_size != size:
-        return False
     if checkmd5:
         etag = headers['ETag']
         expected_md5 = etag.strip(' \t\n\r"').split(':')[0]
+        expected = (expected_size, expected_md5)
+    else:
+        expected = expected_size
+
+    size = os.path.getsize(path)
+    if checkmd5:
         md5 = compute_file_md5(path)
-        if expected_md5 != md5:
-            return False
-    return True
+        actual = (size, md5)
+    else:
+        actual = size
+
+    return (expected, actual)
 
 def download_file(crawl_session, download_session, dry, checkmd5, url, path):
     # Always get response for now, to prime the cache.
     response = head_url(crawl_session, url)
     if os.path.exists(path):
-        if file_matches_headers(path, response.headers, checkmd5):
+        (expected, actual) = compare_file_with_headers(path, response.headers, checkmd5)
+        if expected == actual:
             if checkmd5:
                 print "Skipping \"%s\", already exists (sizes and md5s match)" % (path)
             else:
                 print "Skipping \"%s\", already exists (sizes match)" % (path)
             return
+        else:
+            print "File exists, but doesn't match headers: expected %s, got %s" % (expected, actual)
 
     maxAttempts = 3
     delay = 3
@@ -195,10 +203,11 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
                 for chunk in r.iter_content(512 * 1024):
                     fd.write(chunk)
 
-            if file_matches_headers(path, response.headers, True):
+            (expected, actual) = compare_file_with_headers(path, response.headers, True)
+            if expected == actual:
                 break
 
-            print "Downloaded file %s didn't match headers; sleeping for %d seconds and retrying (attempt %d)" % (path, delay, i+1)
+            print "Downloaded file %s didn't match headers (expected %s, got %s), sleeping for %d seconds and retrying (attempt %d)" % (path, expected, actual, delay, i+1)
             time.sleep(delay)
         else:
             # Failed all attempts.
