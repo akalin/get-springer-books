@@ -27,8 +27,15 @@ def cleanup_title(raw_title, doi):
         return clean_titles[doi].decode('utf8', 'strict')
     return raw_title.decode('utf8', 'strict')
 
-def cleanup_authors(raw_authors):
+too_many_authors = {
+    '10.1007/BFb0070748',
+}
+
+def cleanup_authors(raw_authors, doi):
     authors = raw_authors
+
+    if doi in too_many_authors:
+        return u''
 
     # Handle this as a special case to avoid catching initials.
     authors = re.sub(r"Jr\.([A-Z])", r'Jr., \1', authors)
@@ -40,7 +47,7 @@ def cleanup_authors(raw_authors):
 
 def build_full_title(raw_title, year, raw_authors, doi):
     title = cleanup_title(raw_title, doi)
-    authors = cleanup_authors(raw_authors)
+    authors = cleanup_authors(raw_authors, doi)
     doi_suffix = doi.split('/')[1]
     if len(authors) > 0:
         full_title = "%s - %s (%s) (%s)" % (title, authors, year, doi_suffix)
@@ -67,7 +74,7 @@ def build_old_filenames(raw_title, year, raw_authors, doi):
     #
     # TODO: Handle old author-splitting method.
     title = cleanup_title(raw_title, doi)
-    authors = cleanup_authors(raw_authors)
+    authors = cleanup_authors(raw_authors, doi)
     old_filenames.append("%s - %s (%s).pdf" % (title, authors, year))
 
     # v3, omit dash when authors is empty.
