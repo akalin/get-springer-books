@@ -216,6 +216,10 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
             if expected == actual:
                 break
 
+            # When the above test fails, it's usually because of a
+            # different MD5. But the etag MD5 is the erroneous one --
+            # trying again (with a brand-new invocation of the script)
+            # gets the correct one!
             print "Downloaded file %s didn't match headers (expected %s, got %s), sleeping for %d seconds and retrying (attempt %d)" % (path, expected, actual, delay, i+1)
             time.sleep(delay)
         else:
