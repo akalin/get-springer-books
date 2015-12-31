@@ -12,6 +12,7 @@ import re
 import requests
 import requests_cache
 import sys
+import time
 import urllib
 import urllib2
 
@@ -179,6 +180,7 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
             return
 
     maxAttempts = 3
+    delay = 3
 
     print "Getting \"%s\" from %s" % (path, url)
     if not dry:
@@ -195,7 +197,8 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
             if file_matches_headers(path, response.headers, True):
                 break
 
-            print "Downloaded file %s didn't match headers; retrying (attempt %d)" % (path, i+1)
+            print "Downloaded file %s didn't match headers; sleeping for %d seconds and retrying (attempt %d)" % (path, delay, i+1)
+            time.sleep(delay)
         else:
             # Failed all attempts.
             raise Exception("Downloaded file %s didn't match headers after %d attempts" % (path, maxAttempts))
