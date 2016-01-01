@@ -20,6 +20,20 @@ clean_titles = {
     '10.1007/978-1-4612-5142-2': 'SL_2(R)',
     '10.1007/BFb0058395': 'Les Foncteurs Dérivés de lim<- et leurs Applications en Théorie des Modules',
     '10.1007/BFb0096358': 'New Classes of L^P−spaces',
+    '10.1007/BFb0058801': 'Séminaire Bourbaki vol. 1968-69 Exposés 347-363',
+    '10.1007/BFb0058820': 'Séminaire Bourbaki vol. 1969-70 Exposés 364–381',
+    '10.1007/BFb0058692': 'Séminaire Bourbaki vol. 1970-71 Exposés 382–399',
+    '10.1007/BFb0069272': 'Séminaire Bourbaki vol. 1971-72 Exposés 400–417',
+    '10.1007/BFb0058692': 'Séminaire Bourbaki vol. 1970-71 Exposés 382–399',
+    '10.1007/BFb0057298': 'Séminaire Bourbaki vol. 1972-73 Exposés 418–435',
+    '10.1007/BFb0066360': 'Séminaire Bourbaki vol. 1973-74 Exposés 436–452',
+    '10.1007/BFb0080053': 'Séminaire Bourbaki vol. 1974-75 Exposés 453–470',
+    '10.1007/BFb0096057': 'Séminaire Bourbaki vol. 1975-76 Exposés 471–488',
+    '10.1007/BFb0070748': 'Séminaire Bourbaki vol. 1976-77 Exposés 489–506',
+    '10.1007/BFb0069969': 'Séminaire Bourbaki vol. 1977-78 Exposés 507–524',
+    '10.1007/BFb0096231': 'Séminaire Bourbaki vol. 1978-79 Exposés 525 – 542',
+    '10.1007/BFb0089923': 'Séminaire Bourbaki vol. 1979-80 Exposés 543 – 560',
+    '10.1007/BFb0097185': 'Séminaire Bourbaki vol. 1980-81 Exposés 561–578',
 }
 
 def cleanup_title(raw_title, doi):
