@@ -117,6 +117,7 @@ clean_section_titles = {
     '10.1007/BFb0091368': u'Evaporation and condensation of a rarefied gas between its two parallel plane condensed phases with different temperatures and negative temperature-gradient phenomenon',
     '10.1007/BFb0077580': u'Asymptotic expressions for the remainders associated to expansions of type $$\\sum\\limits_{n = 0}^\\infty { c_n \\frac{{z^n }}{{n!}}, } \\sum\\limits_{n = 0}^\\infty { c_n z^n and } \\sum\\limits_{n = 0} { c_n n!z^n }$$',
     '10.1007/BFb0077925': u'A solution of the integral equation $$\\int_0^\\infty {(\\sin (\\frac{\\pi }{4} + \\theta )e^{ - \\theta y} + \\sin (\\frac{\\pi }{4} - \\theta )e^{\\theta y} )\\pi (x,y)dy = \\surd 2 cosh \\theta x}$$ in convolution form',
+    '10.1007/BFb0099702': u'Der Begriff der charakteristischen Funktion. Nevanlinnas Charakterisierung rationaler Stellen',
 }
 
 def cleanup_section_title(raw_title, doi):
