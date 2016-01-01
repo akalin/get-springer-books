@@ -34,6 +34,15 @@ clean_titles = {
     '10.1007/BFb0096231': 'Séminaire Bourbaki vol. 1978-79 Exposés 525 – 542',
     '10.1007/BFb0089923': 'Séminaire Bourbaki vol. 1979-80 Exposés 543 – 560',
     '10.1007/BFb0097185': 'Séminaire Bourbaki vol. 1980-81 Exposés 561–578',
+    '10.1007/BFb0089463': 'Séminaire de Probabilités XIV 1978-79',
+    '10.1007/BFb0075834': 'Séminaire de Probabilités XIX 1983-84',
+    '10.1007/BFb0088355': 'Séminaire de Probabilités XV 1979-80',
+    '10.1007/BFb0092765': 'Séminaire de Probabilités XVI 1980-81',
+    '10.1007/BFb0092646': 'Séminaire de Probabilités XVI, 1980-81 Supplément: Géométrie Différentielle Stochastique',
+    '10.1007/BFb0068294': 'Séminaire de Probabilités XVII 1981-82',
+    '10.1007/BFb0100027': 'Séminaire de Probabilités XVIII 1982-83',
+    '10.1007/BFb0075705': 'Séminaire de Probabilités XX 1984-85',
+    '10.1007/BFb0083752': 'Séminaire de Probabilités XXIV 1988-89',
 }
 
 def cleanup_title(raw_title, doi):
