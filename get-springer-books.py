@@ -241,8 +241,6 @@ def download(crawl_session, download_session, dry, checkmd5, raw_title, year, ra
         i = 1
         link_strs = []
         for (title, url, doi) in sections:
-#            if len(title) > 100:
-#                title = title[:97] + '...'
             if doi:
                 doi_suffix = doi.split('/')[1]
                 filename = "%d - %s (%s).pdf" % (i, title, doi_suffix)
