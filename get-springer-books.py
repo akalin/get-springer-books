@@ -43,6 +43,12 @@ clean_titles = {
     '10.1007/BFb0100027': 'Séminaire de Probabilités XVIII 1982-83',
     '10.1007/BFb0075705': 'Séminaire de Probabilités XX 1984-85',
     '10.1007/BFb0083752': 'Séminaire de Probabilités XXIV 1988-89',
+    '10.1007/BFb0077395': 'Séminaire Pierre Lelong (Analyse) Année 1973-74',
+    '10.1007/BFb0077993': 'Séminaire Pierre Lelong (Analyse) Année 1974-75',
+    '10.1007/BFb0091458': 'Séminaire Pierre Lelong (Analyse) Année 1975-76',
+    '10.1007/BFb0097744': 'Séminaire Pierre Lelong - Henri Skoda (Analyse) Années 1978-79',
+    '10.1007/BFb0063241': 'Séminaire Pierre Lelong — Henri Skoda (Analyse) Année 1976-77',
+    '10.1007/BFb0097040': 'Séminaire Pierre Lelong-Henri Skoda (Analyse) Années 1980-81',
 }
 
 def cleanup_title(raw_title, doi):
