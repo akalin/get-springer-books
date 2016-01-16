@@ -349,6 +349,8 @@ def main():
     parser.add_argument('--dry', help="don't actually download any PDFs", action='store_true')
     parser.add_argument('--checkmd5', help="check the MD5s of existing PDFs", action='store_true')
     parser.add_argument('--socks5', help='SOCKS5 proxy to use (host:port)')
+    parser.add_argument('--crawl-cache', help='Location of crawl cache',
+                        default='/tmp/get-springer-books-crawl-cache')
     args = parser.parse_args()
 
     if args.socks5:
@@ -358,8 +360,10 @@ def main():
         socks.set_default_proxy(socks.SOCKS5, host, int(port))
         socket.socket = socks.socksocket
 
+        print "Using crawl cache at %s" % (args.crawl_cache)
+
     # Caches redirects, and also 404s so we cache url_exists queries.
-    crawl_session = requests_cache.core.CachedSession('/tmp/get-springer-books-crawl-cache', allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302,404))
+    crawl_session = requests_cache.core.CachedSession(args.crawl_cache, allowable_methods=('GET', 'HEAD'), allowable_codes=(200,301,302,404))
     download_session = requests.session()
     
     books = []
