@@ -253,9 +253,9 @@ def list_files(crawl_session, raw_title, year, raw_authors, doi, url):
 def compute_file_md5(path):
     return hashlib.md5(open(path, 'rb').read()).hexdigest()
 
-def compare_file_with_headers(path, headers, checkmd5):
+def compare_file_with_headers(path, headers, check_md5):
     expected_size = int(headers['Content-Length'])
-    if checkmd5:
+    if check_md5:
         etag = headers['ETag']
         expected_md5 = etag.strip(' \t\n\r"').split(':')[0]
         expected = (expected_size, expected_md5)
@@ -263,7 +263,7 @@ def compare_file_with_headers(path, headers, checkmd5):
         expected = expected_size
 
     size = os.path.getsize(path)
-    if checkmd5:
+    if check_md5:
         md5 = compute_file_md5(path)
         actual = (size, md5)
     else:
@@ -271,13 +271,13 @@ def compare_file_with_headers(path, headers, checkmd5):
 
     return (expected, actual)
 
-def download_file(crawl_session, download_session, dry, checkmd5, url, path):
+def download_file(crawl_session, download_session, dry, check_md5, url, path):
     # Always get response for now, to prime the cache.
     response = head_url(crawl_session, url)
     if os.path.exists(path):
-        (expected, actual) = compare_file_with_headers(path, response.headers, checkmd5)
+        (expected, actual) = compare_file_with_headers(path, response.headers, check_md5)
         if expected == actual:
-            if checkmd5:
+            if check_md5:
                 print "Skipping \"%s\", already exists (sizes and md5s match)" % (path)
             else:
                 print "Skipping \"%s\", already exists (sizes match)" % (path)
@@ -314,7 +314,7 @@ def download_file(crawl_session, download_session, dry, checkmd5, url, path):
             # Failed all attempts.
             raise Exception("Downloaded file %s didn't match headers after %d attempts" % (path, maxAttempts))
 
-def download(crawl_session, download_session, dry, checkmd5, raw_title, year, raw_authors, doi, url, index, count):
+def download(crawl_session, download_session, dry, check_md5, raw_title, year, raw_authors, doi, url, index, count):
     full_title = build_full_title(raw_title, year, raw_authors, doi)
     filename = build_filename(raw_title, year, raw_authors, doi)
 
@@ -323,7 +323,7 @@ def download(crawl_session, download_session, dry, checkmd5, raw_title, year, ra
     print "(%d/%d)" % (index+1, count),
 
     if url_exists(crawl_session, pdf_url):
-        download_file(crawl_session, download_session, dry, checkmd5, pdf_url, filename)
+        download_file(crawl_session, download_session, dry, check_md5, pdf_url, filename)
     else:
         sections = get_sections(crawl_session, url)
         i = 1
@@ -335,7 +335,7 @@ def download(crawl_session, download_session, dry, checkmd5, raw_title, year, ra
             else:
                 filename = "%d - %s.pdf" % (i, title)
             path = os.path.join(full_title, filename)
-            download_file(crawl_session, download_session, dry, checkmd5, url, path)
+            download_file(crawl_session, download_session, dry, check_md5, url, path)
             i += 1
     
 def main():
@@ -347,7 +347,7 @@ def main():
     parser.add_argument('--rename', help='look for existing files and rename them', action='store_true')
     parser.add_argument('--list', help='build a markdown list of the titles and links', action='store_true')
     parser.add_argument('--dry', help="don't actually download any PDFs", action='store_true')
-    parser.add_argument('--checkmd5', help="check the MD5s of existing PDFs", action='store_true')
+    parser.add_argument('--check-md5', help="check the MD5s of existing PDFs", action='store_true')
     parser.add_argument('--socks5', help='SOCKS5 proxy to use (host:port)')
     parser.add_argument('--crawl-cache', help='Location of crawl cache',
                         default='/tmp/get-springer-books-crawl-cache')
@@ -411,7 +411,7 @@ def main():
         elif args.list:
             list_files(crawl_session, raw_title, year, raw_authors, doi, url)
         else:
-            download(crawl_session, download_session, args.dry, args.checkmd5, raw_title, year, raw_authors, doi, url, i, len(sorted_books))
+            download(crawl_session, download_session, args.dry, args.check_md5, raw_title, year, raw_authors, doi, url, i, len(sorted_books))
         i += 1
 
 if __name__ == "__main__":
