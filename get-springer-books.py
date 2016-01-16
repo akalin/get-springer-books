@@ -5,6 +5,7 @@ import bs4
 import codecs
 import collections
 import csv
+import glob
 import hashlib
 import operator
 import os
@@ -70,14 +71,21 @@ def cleanup_authors(raw_authors, doi):
     authors = re.sub(r"Jr\.([A-Z])", r'Jr., \1', authors)
 
     # This won't work for names that have mixed casing, but that seems
-    # to be rare, except for initials.
+    # to be rare, except for initials and 'PhD'.
     authors = re.sub(r"([^- '’.A-Z])([A-Z])", r'\1, \2', authors)
+
+    # Fixup PhD.
+    authors = re.sub('Ph, D', 'PhD', authors)
     return authors.decode('utf8', 'strict')
+
+def get_doi_suffix(doi):
+    doi_suffix = doi.split('/')[1]
+    return doi_suffix
 
 def build_full_title(raw_title, year, raw_authors, doi):
     title = cleanup_title(raw_title, doi)
     authors = cleanup_authors(raw_authors, doi)
-    doi_suffix = doi.split('/')[1]
+    doi_suffix = get_doi_suffix(doi)
     if len(authors) > 0:
         full_title = "%s - %s (%s) (%s)" % (title, authors, year, doi_suffix)
     else:
@@ -125,7 +133,17 @@ def rename(raw_title, year, raw_authors, doi, url):
         if os.path.isfile(candidate):
             print "Found %s, renaming to %s" % (candidate, filename)
             os.rename(candidate, filename)
-            break
+            return
+
+    doi_suffix = doi.split('/')[1]
+    candidate_files = [f.decode('utf8', 'strict') for f in glob.glob('*%s*' % doi_suffix)]
+    if len(candidate_files) > 2:
+        print "Found files %s, skipping" % (candidate_files)
+    elif len(candidate_files) == 1 and candidate_files[0] != filename:
+        # TODO: This seems to fire even when some (Unicode?) filenames
+        # are the same. Figure out why.
+        print "Found %s, renaming to %s" % (candidate_files[0], filename)
+        os.rename(candidate_files[0], filename)
 
 def head_url(crawl_session, url):
     request = crawl_session.prepare_request(requests.Request('HEAD', url))
@@ -330,7 +348,7 @@ def download(crawl_session, download_session, dry, check_md5, raw_title, year, r
         link_strs = []
         for (title, url, doi) in sections:
             if doi:
-                doi_suffix = doi.split('/')[1]
+                doi_suffix = get_doi_suffix(doi)
                 filename = "%d - %s (%s).pdf" % (i, title, doi_suffix)
             else:
                 filename = "%d - %s.pdf" % (i, title)
