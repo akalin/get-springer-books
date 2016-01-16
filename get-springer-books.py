@@ -76,6 +76,10 @@ def cleanup_authors(raw_authors, doi):
 
     # Fixup PhD.
     authors = re.sub('Ph, D', 'PhD', authors)
+
+    # Fixup "PhD{Name}"
+    authors = re.sub(r"PhD([A-Z])", r'PhD, \1', authors)
+
     return authors.decode('utf8', 'strict')
 
 def get_doi_suffix(doi):
